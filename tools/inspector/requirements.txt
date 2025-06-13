@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+python-socketio
+jinja2
+httpx
+a2a-sdk
