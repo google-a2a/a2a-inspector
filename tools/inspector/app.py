@@ -147,7 +147,6 @@ async def handle_send_message(sid, json_data):
                 await sio.emit('debug_log', {'type': 'response', 'data': response_data, 'id': response_id}, to=sid)
                 await sio.emit('agent_response', response_data, to=sid)
         else:
-            # Non-streaming fallback
             request_obj = SendMessageRequest(
                 id=message_id,
                 method="message/send",

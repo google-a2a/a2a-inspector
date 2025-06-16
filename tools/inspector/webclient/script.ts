@@ -1,36 +1,61 @@
+import { io } from "socket.io-client";
+
+interface AgentResponseEvent {
+    kind: 'task' | 'status-update' | 'artifact-update' | 'message';
+    id: string;
+    error?: string;
+    status?: {
+        state: string;
+        message?: { parts?: { text?: string }[] };
+    };
+    artifact?: {
+        parts?: ({ file?: { uri: string; mimeType: string } } | { text?: string })[];
+    };
+    parts?: { text?: string }[];
+    validation_errors: string[];
+}
+
+interface DebugLog {
+    type: 'request' | 'response' | 'error' | 'validation_error';
+    data: any;
+    id: string;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
-    const connectBtn = document.getElementById('connect-btn');
-    const agentUrlInput = document.getElementById('agent-url');
-    const collapsibleHeader = document.querySelector('.collapsible-header');
-    const collapsibleContent = document.querySelector('.collapsible-content');
-    const agentCardContent = document.getElementById('agent-card-content');
-    const validationErrorsContainer = document.getElementById('validation-errors');
-    const chatInput = document.getElementById('chat-input');
-    const sendBtn = document.getElementById('send-btn');
-    const chatMessages = document.getElementById('chat-messages');
-    const debugConsole = document.getElementById('debug-console');
-    const debugHandle = document.getElementById('debug-handle');
-    const debugContent = document.getElementById('debug-content');
-    const clearConsoleBtn = document.getElementById('clear-console-btn');
-    const toggleConsoleBtn = document.getElementById('toggle-console-btn');
-    const jsonModal = document.getElementById('json-modal');
-    const modalJsonContent = document.getElementById('modal-json-content');
-    const modalCloseBtn = document.querySelector('.modal-close-btn');
+
+    const connectBtn = document.getElementById('connect-btn') as HTMLButtonElement;
+    const agentUrlInput = document.getElementById('agent-url') as HTMLInputElement;
+    const collapsibleHeader = document.querySelector('.collapsible-header') as HTMLElement;
+    const collapsibleContent = document.querySelector('.collapsible-content') as HTMLElement;
+    const agentCardContent = document.getElementById('agent-card-content') as HTMLPreElement;
+    const validationErrorsContainer = document.getElementById('validation-errors') as HTMLElement;
+    const chatInput = document.getElementById('chat-input') as HTMLInputElement;
+    const sendBtn = document.getElementById('send-btn') as HTMLButtonElement;
+    const chatMessages = document.getElementById('chat-messages') as HTMLElement;
+    const debugConsole = document.getElementById('debug-console') as HTMLElement;
+    const debugHandle = document.getElementById('debug-handle') as HTMLElement;
+    const debugContent = document.getElementById('debug-content') as HTMLElement;
+    const clearConsoleBtn = document.getElementById('clear-console-btn') as HTMLButtonElement;
+    const toggleConsoleBtn = document.getElementById('toggle-console-btn') as HTMLButtonElement;
+    const jsonModal = document.getElementById('json-modal') as HTMLElement;
+    const modalJsonContent = document.getElementById('modal-json-content') as HTMLPreElement;
+    const modalCloseBtn = document.querySelector('.modal-close-btn') as HTMLElement;
 
     let isResizing = false;
-    let rawLogStore = {};
-    const messageJsonStore = {};
+    const rawLogStore: { [key: string]: { [key: string]: any } } = {};
+    const messageJsonStore: { [key: string]: AgentResponseEvent } = {};
 
-    debugHandle.addEventListener('mousedown', (e) => {
-        if (e.target === debugHandle || e.target.tagName === 'SPAN') {
+    debugHandle.addEventListener('mousedown', (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target === debugHandle || target.tagName === 'SPAN') {
             isResizing = true;
             document.body.style.userSelect = 'none';
             document.body.style.pointerEvents = 'none';
         }
     });
 
-    window.addEventListener('mousemove', (e) => {
+    window.addEventListener('mousemove', (e: MouseEvent) => {
         if (!isResizing) return;
         const newHeight = window.innerHeight - e.clientY;
         if (newHeight > 40 && newHeight < window.innerHeight * 0.9) {
@@ -51,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     clearConsoleBtn.addEventListener('click', () => {
         debugContent.innerHTML = '';
-        rawLogStore = {};
+        Object.keys(rawLogStore).forEach(key => delete rawLogStore[key]);
     });
 
     toggleConsoleBtn.addEventListener('click', () => {
@@ -60,13 +85,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     modalCloseBtn.addEventListener('click', () => jsonModal.classList.add('hidden'));
-    jsonModal.addEventListener('click', (e) => {
+    jsonModal.addEventListener('click', (e: MouseEvent) => {
         if (e.target === jsonModal) {
             jsonModal.classList.add('hidden');
         }
     });
 
-    const showJsonInModal = (jsonData) => {
+    const showJsonInModal = (jsonData: any) => {
         if (jsonData) {
             let jsonString = JSON.stringify(jsonData, null, 2);
             jsonString = jsonString.replace(/"method": "([^"]+)"/g, '<span class="json-highlight">"method": "$1"</span>');
@@ -99,22 +124,22 @@ document.addEventListener('DOMContentLoaded', () => {
             socket.emit('initialize_client', { url: url });
 
             if (data.validation_errors.length > 0) {
-                validationErrorsContainer.innerHTML = `<h3>Validation Errors</h3><ul>${data.validation_errors.map(e => `<li>${e}</li>`).join('')}</ul>`;
+                validationErrorsContainer.innerHTML = `<h3>Validation Errors</h3><ul>${data.validation_errors.map((e: string) => `<li>${e}</li>`).join('')}</ul>`;
             } else {
                 validationErrorsContainer.innerHTML = '<p style="color: green;">Agent card is valid.</p>';
             }
         } catch (error) {
-            validationErrorsContainer.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            validationErrorsContainer.innerHTML = `<p style="color: red;">Error: ${(error as Error).message}</p>`;
         }
     });
 
-    socket.on('client_initialized', (data) => {
+    socket.on('client_initialized', (data: { status: string, message?: string }) => {
         if (data.status === 'success') {
             chatInput.disabled = false;
             sendBtn.disabled = false;
             chatMessages.innerHTML = '<p class="placeholder-text">Ready to chat.</p>';
             debugContent.innerHTML = '';
-            rawLogStore = {};
+            Object.keys(rawLogStore).forEach(key => delete rawLogStore[key]);
         } else {
             validationErrorsContainer.innerHTML = `<p style="color: red;">Error initializing client: ${data.message}</p>`;
         }
@@ -131,15 +156,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     sendBtn.addEventListener('click', sendMessage);
-    chatInput.addEventListener('keypress', (e) => {
+    chatInput.addEventListener('keypress', (e: KeyboardEvent) => {
         if (e.key === 'Enter') sendMessage();
     });
 
-    socket.on('agent_response', (event) => {
+    socket.on('agent_response', (event: AgentResponseEvent) => {
         const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         messageJsonStore[messageId] = event;
 
-        // <-- Fix: Pass validation errors to appendMessage
         const validationErrors = event.validation_errors || [];
 
         if (event.error) {
@@ -149,7 +173,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         switch (event.kind) {
             case 'task':
-                appendMessage('agent progress', `[${event.kind}] Task created with status: ${event.status.state}`, messageId, false, validationErrors);
+                if (event.status) {
+                    appendMessage('agent progress', `[${event.kind}] Task created with status: ${event.status.state}`, messageId, false, validationErrors);
+                }
                 break;
             case 'status-update':
                 const statusText = event.status?.message?.parts?.[0]?.text;
@@ -158,17 +184,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 break;
             case 'artifact-update':
-                const artifactTextPart = event.artifact?.parts?.find(p => p.text);
-                if (artifactTextPart) {
-                    appendMessage('agent', `[${event.kind}] ${artifactTextPart.text}`, messageId, false, validationErrors);
-                }
-
-                const filePart = event.artifact?.parts?.find(p => p.file?.uri);
-                if (filePart) {
-                    const { uri, mimeType } = filePart.file;
-                    const messageHtml = `[${event.kind}] File received (${mimeType}): <a href="${uri}" target="_blank" rel="noopener noreferrer">Open Link</a>`;
-                    appendMessage('agent', messageHtml, messageId, true, validationErrors);
-                }
+                event.artifact?.parts?.forEach(p => {
+                    if ('text' in p && p.text) {
+                        appendMessage('agent', `[${event.kind}] ${p.text}`, messageId, false, validationErrors);
+                    }
+                    if ('file' in p && p.file) {
+                        const { uri, mimeType } = p.file;
+                        const messageHtml = `[${event.kind}] File received (${mimeType}): <a href="${uri}" target="_blank" rel="noopener noreferrer">Open Link</a>`;
+                        appendMessage('agent', messageHtml, messageId, true, validationErrors);
+                    }
+                });
                 break;
             case 'message':
                 const textPart = event.parts?.find(p => p.text);
@@ -179,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    socket.on('debug_log', (log) => {
+    socket.on('debug_log', (log: DebugLog) => {
         const logEntry = document.createElement('div');
         const timestamp = new Date().toLocaleTimeString();
         
@@ -199,14 +224,13 @@ document.addEventListener('DOMContentLoaded', () => {
         rawLogStore[log.id][log.type] = log.data;
     });
     
-    function appendMessage(sender, content, messageId, isHtml = false, validationErrors = []) {
+    function appendMessage(sender: string, content: string, messageId: string, isHtml: boolean = false, validationErrors: string[] = []) {
         const placeholder = chatMessages.querySelector('.placeholder-text');
         if (placeholder) placeholder.remove();
 
         const messageElement = document.createElement('div');
         messageElement.className = `message ${sender.replace(' ', '-')}`;
         
-        // <-- Fix: Create a container for the message content and validation status
         const messageContent = document.createElement('div');
         messageContent.className = 'message-content';
 
@@ -218,7 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         messageElement.appendChild(messageContent);
 
-        // <-- Fix: Add validation status indicator
         const statusIndicator = document.createElement('span');
         statusIndicator.className = 'validation-status';
         if (sender !== 'user') {
@@ -234,8 +257,9 @@ document.addEventListener('DOMContentLoaded', () => {
             messageElement.appendChild(statusIndicator);
         }
 
-        messageElement.addEventListener('click', (e) => {
-            if (e.target.tagName !== 'A') {
+        messageElement.addEventListener('click', (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (target.tagName !== 'A') {
                 const jsonData = sender === 'user' ? rawLogStore[messageId]?.request : messageJsonStore[messageId];
                 showJsonInModal(jsonData);
             }
