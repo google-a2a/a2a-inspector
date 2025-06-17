@@ -1,5 +1,5 @@
 {
-  "ignore": ["**/.github/**", "**/.git/**", "**/tests/**", "**/src/a2a/grpc/**", "**/.nox/**", "**/.venv/**"],
+  "ignore": ["**/.github/**", "**/.git/**", "**/tests/**", "**/.nox/**", "**/.venv/**"],
   "threshold": 3,
   "reporters": ["html", "markdown"]
 }
