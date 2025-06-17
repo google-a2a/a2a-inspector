@@ -36,7 +36,7 @@ nox.options.error_on_missing_interpreters = True
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
-def format(session) -> None:
+def format(session: nox.Session) -> None:
     """Format Python code using autoflake, pyupgrade, and ruff."""
     format_all = False
 

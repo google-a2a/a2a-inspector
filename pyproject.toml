@@ -15,9 +15,7 @@ dependencies = [
     "typing-extensions>=4.12.2",
     "uvicorn>=0.34.0",
     "python-socketio",
-    "Flask",
     "jinja2",
-    "flask_cors",
 ]
 [tool.uv.workspace]
 members = ["backend"]
