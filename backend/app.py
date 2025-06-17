@@ -16,7 +16,9 @@ from a2a.types import (
     MessageSendParams,
     Role,
     SendMessageRequest,
+    SendMessageResponse,
     SendStreamingMessageRequest,
+    SendStreamingMessageResponse,
     TextPart,
 )
 from fastapi import FastAPI, Request
@@ -69,7 +71,11 @@ async def _emit_debug_log(
     )
 
 
-async def _process_a2a_response(result: Any, sid: str, request_id: str) -> None:
+async def _process_a2a_response(
+    result: SendMessageResponse | SendStreamingMessageResponse,
+    sid: str,
+    request_id: str,
+) -> None:
     """Processes a response from the A2A client, validates it, and emits events.
 
     Handles both success and error responses.
@@ -244,7 +250,7 @@ async def handle_send_message(sid: str, json_data: dict[str, Any]) -> None:
 
     message = Message(
         role=Role.user,
-        parts=[TextPart(text=str(message_text))],
+        parts=[TextPart(text=str(message_text))],  # type: ignore[list-item]
         messageId=str(uuid4()),
     )
     payload = MessageSendParams(
@@ -261,7 +267,7 @@ async def handle_send_message(sid: str, json_data: dict[str, Any]) -> None:
 
     try:
         if supports_streaming:
-            request_obj = SendStreamingMessageRequest(
+            stream_request = SendStreamingMessageRequest(
                 id=message_id,
                 method='message/stream',
                 jsonrpc='2.0',
@@ -271,13 +277,13 @@ async def handle_send_message(sid: str, json_data: dict[str, Any]) -> None:
                 sid,
                 message_id,
                 'request',
-                request_obj.model_dump(exclude_none=True),
+                stream_request.model_dump(exclude_none=True),
             )
-            response_stream = a2a_client.send_message_streaming(request_obj)
-            async for result in response_stream:
-                await _process_a2a_response(result, sid, message_id)
+            response_stream = a2a_client.send_message_streaming(stream_request)
+            async for stream_result in response_stream:
+                await _process_a2a_response(stream_result, sid, message_id)
         else:
-            request_obj = SendMessageRequest(
+            send_message_request = SendMessageRequest(
                 id=message_id,
                 method='message/send',
                 jsonrpc='2.0',
@@ -287,10 +293,10 @@ async def handle_send_message(sid: str, json_data: dict[str, Any]) -> None:
                 sid,
                 message_id,
                 'request',
-                request_obj.model_dump(exclude_none=True),
+                send_message_request.model_dump(exclude_none=True),
             )
-            result = await a2a_client.send_message(request_obj)
-            await _process_a2a_response(result, sid, message_id)
+            send_result = await a2a_client.send_message(send_message_request)
+            await _process_a2a_response(send_result, sid, message_id)
 
     except Exception as e:
         logger.error(f'Failed to send message for sid {sid}', exc_info=True)
