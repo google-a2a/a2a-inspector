@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import httpx
 import socketio
+import validators
 
 from a2a.client import A2ACardResolver, A2AClient
 from a2a.types import (
@@ -22,8 +23,6 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
-from . import validators
 
 
 # ==============================================================================

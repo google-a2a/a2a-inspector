@@ -6,7 +6,7 @@ def validate_agent_card(card_data: dict[str, Any]) -> list[str]:
     errors: list[str] = []
 
     # Use a frozenset for efficient checking and to indicate immutability.
-    REQUIRED_FIELDS = frozenset(
+    required_fields = frozenset(
         [
             'name',
             'description',
@@ -20,7 +20,7 @@ def validate_agent_card(card_data: dict[str, Any]) -> list[str]:
     )
 
     # Check for the presence of all required fields
-    for field in REQUIRED_FIELDS:
+    for field in required_fields:
         if field not in card_data:
             errors.append(f"Required field is missing: '{field}'.")
 
