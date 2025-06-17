@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "esbuild webclient/script.ts --bundle --outfile=webclient/script.js --platform=browser"
+    "build": "esbuild src/script.ts --bundle --outfile=public/script.js --platform=browser"
   },
   "keywords": [],
   "author": "",
