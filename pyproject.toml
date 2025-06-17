@@ -1,5 +1,5 @@
 [project]
-name = "a2a-inspector"
+name = "a2a-inspector-workspace"
 version = "0.1.0"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -14,10 +14,17 @@ dependencies = [
     "starlette>=0.46.1",
     "typing-extensions>=4.12.2",
     "uvicorn>=0.34.0",
+    "python-socketio",
     "Flask",
+    "jinja2",
     "flask_cors",
 ]
 [tool.uv.workspace]
-members = [
-    "inspector",
+members = ["backend"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15.0",
+    "ruff>=0.11.6",
+    "types-requests",
 ]
