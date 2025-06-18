@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     connectBtn.addEventListener('click', async () => {
-        let url = agentUrlInput.value;
+        let url = agentUrlInput.value.trim();
         if (!url) { return alert('Please enter an agent URL.'); }
         if (!/^https?:\/\//i.test(url)) { url = 'http://' + url; }
 
