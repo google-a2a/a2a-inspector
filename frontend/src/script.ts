@@ -42,6 +42,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalJsonContent = document.getElementById('modal-json-content') as HTMLPreElement;
     const modalCloseBtn = document.querySelector('.modal-close-btn') as HTMLElement;
 
+    function escapeHtml(text: string): string {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     let isResizing = false;
     const rawLogStore: { [key: string]: { [key: string]: any } } = {};
     const messageJsonStore: { [key: string]: AgentResponseEvent } = {};
@@ -167,30 +173,34 @@ document.addEventListener('DOMContentLoaded', () => {
         const validationErrors = event.validation_errors || [];
 
         if (event.error) {
-            appendMessage('agent error', `[error] Error: ${event.error}`, messageId, false, validationErrors);
+            const messageHtml = `<span class="kind-chip kind-chip-error">error</span> Error: ${escapeHtml(event.error)}`;
+            appendMessage('agent error', messageHtml, messageId, true, validationErrors);
             return;
         }
 
         switch (event.kind) {
             case 'task':
                 if (event.status) {
-                    appendMessage('agent progress', `[${event.kind}] Task created with status: ${event.status.state}`, messageId, false, validationErrors);
+                    const messageHtml = `<span class="kind-chip kind-chip-task">${event.kind}</span> Task created with status: ${escapeHtml(event.status.state)}`;
+                    appendMessage('agent progress', messageHtml, messageId, true, validationErrors);
                 }
                 break;
             case 'status-update':
                 const statusText = event.status?.message?.parts?.[0]?.text;
                 if (statusText) {
-                    appendMessage('agent progress', `[${event.kind}] Server responded with: ${statusText}`, messageId, false, validationErrors);
+                    const messageHtml = `<span class="kind-chip kind-chip-status-update">${event.kind}</span> Server responded with: ${escapeHtml(statusText)}`;
+                    appendMessage('agent progress', messageHtml, messageId, true, validationErrors);
                 }
                 break;
             case 'artifact-update':
                 event.artifact?.parts?.forEach(p => {
                     if ('text' in p && p.text) {
-                        appendMessage('agent', `[${event.kind}] ${p.text}`, messageId, false, validationErrors);
+                        const messageHtml = `<span class="kind-chip kind-chip-artifact-update">${event.kind}</span> ${escapeHtml(p.text)}`;
+                        appendMessage('agent', messageHtml, messageId, true, validationErrors);
                     }
                     if ('file' in p && p.file) {
                         const { uri, mimeType } = p.file;
-                        const messageHtml = `[${event.kind}] File received (${mimeType}): <a href="${uri}" target="_blank" rel="noopener noreferrer">Open Link</a>`;
+                        const messageHtml = `<span class="kind-chip kind-chip-artifact-update">${event.kind}</span> File received (${escapeHtml(mimeType)}): <a href="${uri}" target="_blank" rel="noopener noreferrer">Open Link</a>`;
                         appendMessage('agent', messageHtml, messageId, true, validationErrors);
                     }
                 });
@@ -198,7 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'message':
                 const textPart = event.parts?.find(p => p.text);
                 if (textPart) {
-                    appendMessage('agent', `[${event.kind}] ${textPart.text}`, messageId, false, validationErrors);
+                    const messageHtml = `<span class="kind-chip kind-chip-message">${event.kind}</span> ${escapeHtml(textPart.text)}`;
+                    appendMessage('agent', messageHtml, messageId, true, validationErrors);
                 }
                 break;
         }
