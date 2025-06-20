@@ -55,6 +55,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
 
+    /**
+     * Renders basic Markdown elements (specifically bold with **) into HTML,
+     * while also escaping other HTML to prevent XSS.
+     * Also converts newline characters (\n) to <br> for line breaks.
+     * @param markdownText The text containing potential Markdown.
+     * @returns HTML string with Markdown rendered, newlines converted, and other HTML escaped.
+     */
+    function renderMarkdown(markdownText: string): string {
+        let result = '';
+        let lastIndex = 0;
+        // Regex to find **bolded text**: captures content inside asterisks in group 1
+        const regex = /\*\*(.*?)\*\*/g;
+        let match;
+
+        while ((match = regex.exec(markdownText)) !== null) {
+            result += escapeHtml(markdownText.substring(lastIndex, match.index));
+            result += `<strong>${escapeHtml(match[1])}</strong>`;
+            lastIndex = regex.lastIndex;
+        }
+
+        result += escapeHtml(markdownText.substring(lastIndex));
+
+        return result.replace(/\n/g, '<br>');
+    }
+
     let isResizing = false;
     const rawLogStore: { [key: string]: { [key: string]: any } } = {};
     const messageJsonStore: { [key: string]: AgentResponseEvent } = {};
@@ -161,6 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chatMessages.innerHTML = '<p class="placeholder-text">Ready to chat.</p>';
             debugContent.innerHTML = '';
             Object.keys(rawLogStore).forEach(key => delete rawLogStore[key]);
+            Object.keys(messageJsonStore).forEach(key => delete messageJsonStore[key]);
         } else {
             validationErrorsContainer.innerHTML = `<p style="color: red;">Error initializing client: ${data.message}</p>`;
         }
@@ -170,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const messageText = chatInput.value;
         if (messageText.trim() && !chatInput.disabled) {
             const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            appendMessage('user', messageText, messageId);
+            appendMessage('user', messageText, messageId); 
             socket.emit('send_message', { message: messageText, id: messageId });
             chatInput.value = '';
         }
@@ -182,14 +208,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     socket.on('agent_response', (event: AgentResponseEvent) => {
-        const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        messageJsonStore[messageId] = event;
+        const displayMessageId = `display-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        messageJsonStore[displayMessageId] = event;
 
         const validationErrors = event.validation_errors || [];
 
         if (event.error) {
             const messageHtml = `<span class="kind-chip kind-chip-error">error</span> Error: ${escapeHtml(event.error)}`;
-            appendMessage('agent error', messageHtml, messageId, true, validationErrors);
+            appendMessage('agent error', messageHtml, displayMessageId, true, validationErrors);
             return;
         }
 
@@ -197,34 +223,37 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'task':
                 if (event.status) {
                     const messageHtml = `<span class="kind-chip kind-chip-task">${event.kind}</span> Task created with status: ${escapeHtml(event.status.state)}`;
-                    appendMessage('agent progress', messageHtml, messageId, true, validationErrors);
+                    appendMessage('agent progress', messageHtml, displayMessageId, true, validationErrors);
                 }
                 break;
             case 'status-update':
                 const statusText = event.status?.message?.parts?.[0]?.text;
                 if (statusText) {
-                    const messageHtml = `<span class="kind-chip kind-chip-status-update">${event.kind}</span> Server responded with: ${escapeHtml(statusText)}`;
-                    appendMessage('agent progress', messageHtml, messageId, true, validationErrors);
+                    const renderedContent = renderMarkdown(statusText);
+                    const messageHtml = `<span class="kind-chip kind-chip-status-update">${event.kind}</span> Server responded with: ${renderedContent}`;
+                    appendMessage('agent progress', messageHtml, displayMessageId, true, validationErrors);
                 }
                 break;
             case 'artifact-update':
                 event.artifact?.parts?.forEach(p => {
                     if ('text' in p && p.text) {
-                        const messageHtml = `<span class="kind-chip kind-chip-artifact-update">${event.kind}</span> ${escapeHtml(p.text)}`;
-                        appendMessage('agent', messageHtml, messageId, true, validationErrors);
+                        const renderedContent = renderMarkdown(p.text);
+                        const messageHtml = `<span class="kind-chip kind-chip-artifact-update">${event.kind}</span> ${renderedContent}`;
+                        appendMessage('agent', messageHtml, displayMessageId, true, validationErrors);
                     }
                     if ('file' in p && p.file) {
                         const { uri, mimeType } = p.file;
                         const messageHtml = `<span class="kind-chip kind-chip-artifact-update">${event.kind}</span> File received (${escapeHtml(mimeType)}): <a href="${uri}" target="_blank" rel="noopener noreferrer">Open Link</a>`;
-                        appendMessage('agent', messageHtml, messageId, true, validationErrors);
+                        appendMessage('agent', messageHtml, displayMessageId, true, validationErrors);
                     }
                 });
                 break;
             case 'message':
                 const textPart = event.parts?.find(p => p.text);
-                if (textPart) {
-                    const messageHtml = `<span class="kind-chip kind-chip-message">${event.kind}</span> ${escapeHtml(textPart.text)}`;
-                    appendMessage('agent', messageHtml, messageId, true, validationErrors);
+                if (textPart && textPart.text) { // Ensure textPart and textPart.text exist
+                    const renderedContent = renderMarkdown(textPart.text);
+                    const messageHtml = `<span class="kind-chip kind-chip-message">${event.kind}</span> ${renderedContent}`;
+                    appendMessage('agent', messageHtml, displayMessageId, true, validationErrors);
                 }
                 break;
         }
