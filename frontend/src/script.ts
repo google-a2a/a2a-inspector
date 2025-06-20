@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 interface AgentResponseEvent {
     kind: 'task' | 'status-update' | 'artifact-update' | 'message';
     id: string;
+    contextId?: string;
     error?: string;
     status?: {
         state: string;
@@ -192,12 +193,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    let contextId: string | null = null;
+
     const sendMessage = () => {
         const messageText = chatInput.value;
         if (messageText.trim() && !chatInput.disabled) {
             const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             appendMessage('user', messageText, messageId); 
-            socket.emit('send_message', { message: messageText, id: messageId });
+            socket.emit('send_message', { message: messageText, id: messageId, contextId });
             chatInput.value = '';
         }
     };
@@ -218,6 +221,8 @@ document.addEventListener('DOMContentLoaded', () => {
             appendMessage('agent error', messageHtml, displayMessageId, true, validationErrors);
             return;
         }
+
+        if (!contextId && event.contextId) contextId = event.contextId;
 
         switch (event.kind) {
             case 'task':
