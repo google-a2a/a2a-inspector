@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.swp
+*~
+
+# Python specific
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+
+# Node / Frontend specific
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+frontend/dist/
+frontend/build/
+frontend/out/
+
+# Docker specific
+Dockerfile
+.dockerignore
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+
+# Environment files
+.env
+.env.*
+
+# Local database files
+*.sqlite
+*.db
