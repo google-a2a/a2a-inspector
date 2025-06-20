@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A2A Inspector</title>
     <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <link rel="icon" href="https://google-a2a.github.io/A2A/latest/assets/a2a-logo-black.svg">
 </head>
+
 <body>
     <div class="container">
         <h1>A2A Inspector</h1>
@@ -21,16 +25,18 @@
                 <div id="validation-errors">
                     <p class="placeholder-text">Connect to an agent to see its card.</p>
                 </div>
-                <pre id="agent-card-content"></pre>
+                <div class="agent-card-display">
+                    <pre><code id="agent-card-content" class="language-json"></code></pre>
+                </div>
             </div>
         </div>
         <div id="chat-container">
-            <h2>Chat</h2>
+            <h2 class="chat-header">Chat</h2>
             <p class="chat-info">
                 Messages from the agent are marked with ✅ (compliant) or ⚠️ (non-compliant). Click any message to view the raw JSON.
             </p>
             <div id="chat-messages">
-                 <p class="placeholder-text">Messages will appear here.</p>
+                <p class="placeholder-text">Messages will appear here.</p>
             </div>
             <div class="chat-input-container">
                 <input type="text" id="chat-input" placeholder="Type a message..." disabled>
@@ -59,5 +65,7 @@
     </div>
 
     <script src="/static/script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </body>
+
 </html>

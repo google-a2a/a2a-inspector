@@ -87,12 +87,17 @@ h2 {
     cursor: not-allowed;
 }
 
+.agent-card-display {
+    position: relative;
+}
+
 #agent-card-content {
     background-color: #f7f7f7;
     padding: 15px;
     border-radius: 4px;
     white-space: pre-wrap;
     word-wrap: break-word;
+    overflow-x: auto;
 }
 
 .message {

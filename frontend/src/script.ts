@@ -21,6 +21,13 @@ interface DebugLog {
     id: string;
 }
 
+// Declare hljs global from CDN
+declare global {
+    interface Window {
+        hljs: any;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
 
@@ -28,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const agentUrlInput = document.getElementById('agent-url') as HTMLInputElement;
     const collapsibleHeader = document.querySelector('.collapsible-header') as HTMLElement;
     const collapsibleContent = document.querySelector('.collapsible-content') as HTMLElement;
-    const agentCardContent = document.getElementById('agent-card-content') as HTMLPreElement;
+    const agentCardCodeContent = document.getElementById('agent-card-content') as HTMLElement;
     const validationErrorsContainer = document.getElementById('validation-errors') as HTMLElement;
     const chatInput = document.getElementById('chat-input') as HTMLInputElement;
     const sendBtn = document.getElementById('send-btn') as HTMLButtonElement;
@@ -111,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!url) { return alert('Please enter an agent URL.'); }
         if (!/^https?:\/\//i.test(url)) { url = 'http://' + url; }
 
-        agentCardContent.textContent = '';
+        agentCardCodeContent.textContent = '';
         validationErrorsContainer.innerHTML = '<p class="placeholder-text">Fetching Agent Card...</p>';
         chatInput.disabled = true;
         sendBtn.disabled = true;
@@ -125,7 +132,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             if (!response.ok) { throw new Error(data.error || `HTTP error! status: ${response.status}`); }
 
-            agentCardContent.textContent = JSON.stringify(data.card, null, 2);
+            agentCardCodeContent.textContent = JSON.stringify(data.card, null, 2);
+            if (window.hljs) {
+                window.hljs.highlightElement(agentCardCodeContent);
+            } else {
+                console.warn('highlight.js not loaded. Syntax highlighting skipped.');
+            }
+
             validationErrorsContainer.innerHTML = '<p class="placeholder-text">Initializing client session...</p>';
             socket.emit('initialize_client', { url: url });
 
@@ -136,6 +149,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             validationErrorsContainer.innerHTML = `<p style="color: red;">Error: ${(error as Error).message}</p>`;
+            chatInput.disabled = true;
+            sendBtn.disabled = true;
         }
     });
 
@@ -219,13 +234,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const logEntry = document.createElement('div');
         const timestamp = new Date().toLocaleTimeString();
         
+        let jsonString = JSON.stringify(log.data, null, 2);
+        jsonString = jsonString.replace(/"method": "([^"]+)"/g, '<span class="json-highlight">"method": "$1"</span>');
+
         logEntry.className = `log-entry log-${log.type}`;
         logEntry.innerHTML = `
             <div>
                 <span class="log-timestamp">${timestamp}</span>
                 <strong>${log.type.toUpperCase()}</strong>
             </div>
-            <pre>${JSON.stringify(log.data, null, 2)}</pre>
+            <pre>${jsonString}</pre>
         `;
         debugContent.appendChild(logEntry);
         
@@ -233,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
             rawLogStore[log.id] = {};
         }
         rawLogStore[log.id][log.type] = log.data;
+        debugContent.scrollTop = debugContent.scrollHeight;
     });
     
     function appendMessage(sender: string, content: string, messageId: string, isHtml: boolean = false, validationErrors: string[] = []) {
