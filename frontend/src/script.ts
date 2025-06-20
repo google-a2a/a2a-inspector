@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isHidden = debugConsole.classList.toggle('hidden');
         toggleConsoleBtn.textContent = isHidden ? 'Show' : 'Hide';
     });
-    
+
     modalCloseBtn.addEventListener('click', () => jsonModal.classList.add('hidden'));
     jsonModal.addEventListener('click', (e: MouseEvent) => {
         if (e.target === jsonModal) {
@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
             jsonModal.classList.remove('hidden');
         }
     };
-    
+
     connectBtn.addEventListener('click', async () => {
         let url = agentUrlInput.value.trim();
         if (!url) { return alert('Please enter an agent URL.'); }
@@ -147,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         validationErrorsContainer.innerHTML = '<p class="placeholder-text">Fetching Agent Card...</p>';
         chatInput.disabled = true;
         sendBtn.disabled = true;
+
 
         try {
             const response = await fetch('/agent-card', {
@@ -196,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const messageText = chatInput.value;
         if (messageText.trim() && !chatInput.disabled) {
             const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            appendMessage('user', messageText, messageId); 
+            appendMessage('user', messageText, messageId);
             socket.emit('send_message', { message: messageText, id: messageId });
             chatInput.value = '';
         }
@@ -262,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('debug_log', (log: DebugLog) => {
         const logEntry = document.createElement('div');
         const timestamp = new Date().toLocaleTimeString();
-        
+
         let jsonString = JSON.stringify(log.data, null, 2);
         jsonString = jsonString.replace(/"method": "([^"]+)"/g, '<span class="json-highlight">"method": "$1"</span>');
 
@@ -275,21 +276,21 @@ document.addEventListener('DOMContentLoaded', () => {
             <pre>${jsonString}</pre>
         `;
         debugContent.appendChild(logEntry);
-        
+
         if (!rawLogStore[log.id]) {
             rawLogStore[log.id] = {};
         }
         rawLogStore[log.id][log.type] = log.data;
         debugContent.scrollTop = debugContent.scrollHeight;
     });
-    
+
     function appendMessage(sender: string, content: string, messageId: string, isHtml: boolean = false, validationErrors: string[] = []) {
         const placeholder = chatMessages.querySelector('.placeholder-text');
         if (placeholder) placeholder.remove();
 
         const messageElement = document.createElement('div');
         messageElement.className = `message ${sender.replace(' ', '-')}`;
-        
+
         const messageContent = document.createElement('div');
         messageContent.className = 'message-content';
 
@@ -298,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             messageContent.textContent = content;
         }
-        
+
         messageElement.appendChild(messageContent);
 
         const statusIndicator = document.createElement('span');
@@ -323,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showJsonInModal(jsonData);
             }
         });
-        
+
         chatMessages.appendChild(messageElement);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }

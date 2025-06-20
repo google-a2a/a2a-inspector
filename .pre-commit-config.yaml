@@ -1,7 +1,3 @@
-# .pre-commit-config.yaml
-# See https://pre-commit.com for more information
-# See https://pre-commit.com/hooks.html for more hooks
-
 repos:
   # ===============================================
   # Pre-commit standard hooks (general file cleanup)
@@ -43,19 +39,6 @@ repos:
         args: [ "--fix", "--exit-zero-on-fix" ] # Apply fixes, and exit with 0 even if files were modified
       - id: ruff-format      # Formatter: similar to Black, handles consistent code style
         args: [ "--check" ]  # Check formatting, but do not auto-fix during commit; fail if not formatted
-
-  # ===============================================
-  # Frontend Hooks (TypeScript, JavaScript, CSS, HTML, JSON, Markdown)
-  # ===============================================
-  # Prettier for consistent formatting across various frontend file types
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.3 # Use the latest stable Prettier version
-    hooks:
-      - id: prettier
-        # Removed 'types_or' as 'typescript' type tag is not recognized by pre-commit's 'identify'.
-        # The 'files' regex below correctly targets .ts files.
-        files: '\.(js|ts|json|css|html|md|lock)$' # Explicitly match file extensions, including lock files for consistency
-
   # TypeScript type checking (runs `tsc --noEmit` to catch type errors)
   # This hook leverages pre-commit's Node.js environment management.
   - repo: local
