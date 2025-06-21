@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const messageText = chatInput.value;
         if (messageText.trim() && !chatInput.disabled) {
             const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            appendMessage('user', messageText, messageId); 
+            appendMessage('user', messageText, messageId);
             socket.emit('send_message', { message: messageText, id: messageId, contextId });
             chatInput.value = '';
         }
