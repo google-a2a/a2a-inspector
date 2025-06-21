@@ -22,7 +22,7 @@ repos:
     rev: v3.11.0 # Use a specific version for stability
     hooks:
       - id: pyupgrade
-        args: ["--py310-plus"] # Target Python 3.10+ syntax, matching project's target
+        args: ["--py310-plus"] # Target Python 3.10 syntax, matching project's target
 
   # Autoflake for removing unused imports and variables
   - repo: https://github.com/pycqa/autoflake
@@ -55,4 +55,14 @@ repos:
         # Only run on TypeScript files within the frontend directory
         files: '^frontend/.*\.ts$'
         # Do not pass individual filenames, `tsc --project` handles the whole project
+        pass_filenames: false
+  # Frontend linting and formatting using Google TypeScript Style (gts)
+  - repo: local
+    hooks:
+      - id: frontend-gts-fix
+        name: frontend-gts-fix
+        description: "Runs 'gts fix' to lint and format frontend files. Requires 'npm install' in /frontend."
+        entry: npm run --prefix frontend fix
+        language: node
+        files: ^frontend/.*\.(ts|js)$
         pass_filenames: false
