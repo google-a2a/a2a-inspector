@@ -3,6 +3,10 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["es2017", "dom"],
+    "target": "es2017",
+    "moduleResolution": "bundler",
+    "module": "esnext"
   }
 }
