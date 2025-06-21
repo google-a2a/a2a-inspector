@@ -3,6 +3,7 @@ import {io} from 'socket.io-client';
 interface AgentResponseEvent {
   kind: 'task' | 'status-update' | 'artifact-update' | 'message';
   id: string;
+  contextId?: string;
   error?: string;
   status?: {
     state: string;
@@ -17,6 +18,7 @@ interface AgentResponseEvent {
 
 interface DebugLog {
   type: 'request' | 'response' | 'error' | 'validation_error';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
   id: string;
 }
@@ -103,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   let isResizing = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawLogStore: Record<string, Record<string, any>> = {};
   const messageJsonStore: {[key: string]: AgentResponseEvent} = {};
 
@@ -152,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
       jsonModal.classList.add('hidden');
     }
   });
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const showJsonInModal = (jsonData: any) => {
     if (jsonData) {
       let jsonString = JSON.stringify(jsonData, null, 2);
@@ -234,12 +237,18 @@ document.addEventListener('DOMContentLoaded', () => {
     },
   );
 
+  let contextId: string | null = null;
+
   const sendMessage = () => {
     const messageText = chatInput.value;
     if (messageText.trim() && !chatInput.disabled) {
       const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       appendMessage('user', messageText, messageId);
-      socket.emit('send_message', {message: messageText, id: messageId});
+      socket.emit('send_message', {
+        message: messageText,
+        id: messageId,
+        contextId,
+      });
       chatInput.value = '';
     }
   };
@@ -266,6 +275,8 @@ document.addEventListener('DOMContentLoaded', () => {
       );
       return;
     }
+
+    if (event.contextId) contextId = event.contextId;
 
     switch (event.kind) {
       case 'task':

@@ -237,6 +237,7 @@ async def handle_send_message(sid: str, json_data: dict[str, Any]) -> None:
     """Handle the 'send_message' socket.io event."""
     message_text = json_data.get('message')
     message_id = json_data.get('id', str(uuid4()))
+    context_id = json_data.get('contextId')
 
     if sid not in clients:
         await sio.emit(
@@ -252,6 +253,7 @@ async def handle_send_message(sid: str, json_data: dict[str, Any]) -> None:
         role=Role.user,
         parts=[TextPart(text=str(message_text))],  # type: ignore[list-item]
         messageId=str(uuid4()),
+        contextId=context_id,
     )
     payload = MessageSendParams(
         message=message,
