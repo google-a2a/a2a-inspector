@@ -63,7 +63,7 @@ h2 {
     margin-bottom: 40px;
 }
 
-#agent-url,
+#agent-card-url,
 #chat-input {
     flex-grow: 1;
     padding: 10px;
