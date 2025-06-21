@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (!contextId && event.contextId) contextId = event.contextId;
+        if (event.contextId) contextId = event.contextId;
 
         switch (event.kind) {
             case 'task':
