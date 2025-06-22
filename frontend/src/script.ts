@@ -1,4 +1,6 @@
 import {io} from 'socket.io-client';
+import {marked} from 'marked';
+import DOMPurify from 'dompurify';
 
 interface AgentResponseEvent {
   kind: 'task' | 'status-update' | 'artifact-update' | 'message';
@@ -72,37 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalCloseBtn = document.querySelector(
     '.modal-close-btn',
   ) as HTMLElement;
-
-  function escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  /**
-   * Renders basic Markdown elements (specifically bold with **) into HTML,
-   * while also escaping other HTML to prevent XSS.
-   * Also converts newline characters (\n) to <br> for line breaks.
-   * @param markdownText The text containing potential Markdown.
-   * @returns HTML string with Markdown rendered, newlines converted, and other HTML escaped.
-   */
-  function renderMarkdown(markdownText: string): string {
-    let result = '';
-    let lastIndex = 0;
-    // Regex to find **bolded text**: captures content inside asterisks in group 1
-    const regex = /\*\*(.*?)\*\*/g;
-    let match;
-
-    while ((match = regex.exec(markdownText)) !== null) {
-      result += escapeHtml(markdownText.substring(lastIndex, match.index));
-      result += `<strong>${escapeHtml(match[1])}</strong>`;
-      lastIndex = regex.lastIndex;
-    }
-
-    result += escapeHtml(markdownText.substring(lastIndex));
-
-    return result.replace(/\n/g, '<br>');
-  }
 
   let isResizing = false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -265,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const validationErrors = event.validation_errors || [];
 
     if (event.error) {
-      const messageHtml = `<span class="kind-chip kind-chip-error">error</span> Error: ${escapeHtml(event.error)}`;
+      const messageHtml = `<span class="kind-chip kind-chip-error">error</span> Error: ${DOMPurify.sanitize(event.error)}`;
       appendMessage(
         'agent error',
         messageHtml,
@@ -281,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     switch (event.kind) {
       case 'task':
         if (event.status) {
-          const messageHtml = `<span class="kind-chip kind-chip-task">${event.kind}</span> Task created with status: ${escapeHtml(event.status.state)}`;
+          const messageHtml = `<span class="kind-chip kind-chip-task">${event.kind}</span> Task created with status: ${DOMPurify.sanitize(event.status.state)}`;
           appendMessage(
             'agent progress',
             messageHtml,
@@ -291,11 +262,12 @@ document.addEventListener('DOMContentLoaded', () => {
           );
         }
         break;
-      case 'status-update':
-        // eslint-disable-next-line no-case-declarations
+      case 'status-update': {
         const statusText = event.status?.message?.parts?.[0]?.text;
         if (statusText) {
-          const renderedContent = renderMarkdown(statusText);
+          const renderedContent = DOMPurify.sanitize(
+            marked.parse(statusText) as string,
+          );
           const messageHtml = `<span class="kind-chip kind-chip-status-update">${event.kind}</span> Server responded with: ${renderedContent}`;
           appendMessage(
             'agent progress',
@@ -306,10 +278,13 @@ document.addEventListener('DOMContentLoaded', () => {
           );
         }
         break;
+      }
       case 'artifact-update':
         event.artifact?.parts?.forEach(p => {
           if ('text' in p && p.text) {
-            const renderedContent = renderMarkdown(p.text);
+            const renderedContent = DOMPurify.sanitize(
+              marked.parse(p.text) as string,
+            );
             const messageHtml = `<span class="kind-chip kind-chip-artifact-update">${event.kind}</span> ${renderedContent}`;
             appendMessage(
               'agent',
@@ -321,7 +296,10 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           if ('file' in p && p.file) {
             const {uri, mimeType} = p.file;
-            const messageHtml = `<span class="kind-chip kind-chip-artifact-update">${event.kind}</span> File received (${escapeHtml(mimeType)}): <a href="${uri}" target="_blank" rel="noopener noreferrer">Open Link</a>`;
+            const sanitizedMimeType = DOMPurify.sanitize(mimeType);
+            // We can sanitize the URI as well for extra safety, though it should be a valid URL
+            const sanitizedUri = DOMPurify.sanitize(uri);
+            const messageHtml = `<span class="kind-chip kind-chip-artifact-update">${event.kind}</span> File received (${sanitizedMimeType}): <a href="${sanitizedUri}" target="_blank" rel="noopener noreferrer">Open Link</a>`;
             appendMessage(
               'agent',
               messageHtml,
@@ -332,12 +310,12 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
         break;
-      case 'message':
-        // eslint-disable-next-line no-case-declarations
+      case 'message': {
         const textPart = event.parts?.find(p => p.text);
         if (textPart && textPart.text) {
-          // Ensure textPart and textPart.text exist
-          const renderedContent = renderMarkdown(textPart.text);
+          const renderedContent = DOMPurify.sanitize(
+            marked.parse(textPart.text) as string,
+          );
           const messageHtml = `<span class="kind-chip kind-chip-message">${event.kind}</span> ${renderedContent}`;
           appendMessage(
             'agent',
@@ -348,6 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
           );
         }
         break;
+      }
     }
   });
 
