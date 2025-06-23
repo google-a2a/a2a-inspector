@@ -11,6 +11,17 @@
         <h1>A2A Inspector</h1>
         <div class="url-input-container">
             <input type="text" id="agent-url" placeholder="Enter Agent URL">
+            <div class="headers-section">
+                <button id="headers-toggle" class="toggle-btn">
+                    <span class="toggle-icon">▼</span> HTTP Headers
+                </button>
+                <div id="headers-container" class="headers-container collapsed">
+                    <div id="headers-list">
+                        <!-- Header entries will be added here dynamically -->
+                    </div>
+                    <button id="add-header-btn" class="add-btn">+ Add Header</button>
+                </div>
+            </div>
             <button id="connect-btn">Connect</button>
         </div>
         <div id="agent-card-section">

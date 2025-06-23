@@ -26,6 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const connectBtn = document.getElementById('connect-btn') as HTMLButtonElement;
     const agentUrlInput = document.getElementById('agent-url') as HTMLInputElement;
+    const headersToggle = document.getElementById('headers-toggle') as HTMLButtonElement;
+    const headersContainer = document.getElementById('headers-container') as HTMLElement;
+    const headersList = document.getElementById('headers-list') as HTMLElement;
+    const addHeaderBtn = document.getElementById('add-header-btn') as HTMLButtonElement;
     const collapsibleHeader = document.querySelector('.collapsible-header') as HTMLElement;
     const collapsibleContent = document.querySelector('.collapsible-content') as HTMLElement;
     const agentCardContent = document.getElementById('agent-card-content') as HTMLPreElement;
@@ -74,6 +78,73 @@ document.addEventListener('DOMContentLoaded', () => {
         collapsibleContent.classList.toggle('collapsed');
     });
 
+    // Toggle headers container visibility
+    headersToggle.addEventListener('click', () => {
+        headersContainer.classList.toggle('collapsed');
+        const toggleIcon = headersToggle.querySelector('.toggle-icon') as HTMLElement;
+        if (headersContainer.classList.contains('collapsed')) {
+            toggleIcon.style.transform = 'rotate(-90deg)';
+        } else {
+            toggleIcon.style.transform = 'rotate(0deg)';
+        }
+    });
+
+    // Add new header entry
+    addHeaderBtn.addEventListener('click', () => {
+        addHeaderEntry();
+    });
+
+    // Function to add a new header entry
+    function addHeaderEntry(key: string = '', value: string = '') {
+        const headerEntry = document.createElement('div');
+        headerEntry.className = 'header-entry';
+
+        const keyInput = document.createElement('input');
+        keyInput.type = 'text';
+        keyInput.className = 'header-key';
+        keyInput.placeholder = 'Header Name';
+        keyInput.value = key;
+
+        const valueInput = document.createElement('input');
+        valueInput.type = 'text';
+        valueInput.className = 'header-value';
+        valueInput.placeholder = 'Header Value';
+        valueInput.value = value;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-header-btn';
+        removeBtn.textContent = '✕';
+        removeBtn.addEventListener('click', () => {
+            headerEntry.remove();
+        });
+
+        headerEntry.appendChild(keyInput);
+        headerEntry.appendChild(valueInput);
+        headerEntry.appendChild(removeBtn);
+
+        headersList.appendChild(headerEntry);
+    }
+
+    // Function to collect all headers from the form
+    function collectHeaders(): Record<string, string> {
+        const headers: Record<string, string> = {};
+        const headerEntries = headersList.querySelectorAll('.header-entry');
+
+        headerEntries.forEach(entry => {
+            const keyInput = entry.querySelector('.header-key') as HTMLInputElement;
+            const valueInput = entry.querySelector('.header-value') as HTMLInputElement;
+
+            const key = keyInput.value.trim();
+            const value = valueInput.value.trim();
+
+            if (key && value) {
+                headers[key] = value;
+            }
+        });
+
+        return headers;
+    }
+
     clearConsoleBtn.addEventListener('click', () => {
         debugContent.innerHTML = '';
         Object.keys(rawLogStore).forEach(key => delete rawLogStore[key]);
@@ -83,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isHidden = debugConsole.classList.toggle('hidden');
         toggleConsoleBtn.textContent = isHidden ? 'Show' : 'Hide';
     });
-    
+
     modalCloseBtn.addEventListener('click', () => jsonModal.classList.add('hidden'));
     jsonModal.addEventListener('click', (e: MouseEvent) => {
         if (e.target === jsonModal) {
@@ -99,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
             jsonModal.classList.remove('hidden');
         }
     };
-    
+
     connectBtn.addEventListener('click', async () => {
         let url = agentUrlInput.value;
         if (!url) { return alert('Please enter an agent URL.'); }
@@ -110,18 +181,39 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInput.disabled = true;
         sendBtn.disabled = true;
 
+        // Collect custom headers
+        const customHeaders = collectHeaders();
+        
+        // Create headers object for the fetch request
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        };
+        
+        // Add custom headers directly
+        Object.keys(customHeaders).forEach(key => {
+            headers[key] = customHeaders[key];
+        });
+
         try {
             const response = await fetch('/agent-card', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: url, sid: socket.id })
+                headers: headers,
+                body: JSON.stringify({
+                    url: url,
+                    sid: socket.id
+                })
             });
             const data = await response.json();
             if (!response.ok) { throw new Error(data.error || `HTTP error! status: ${response.status}`); }
 
             agentCardContent.textContent = JSON.stringify(data.card, null, 2);
             validationErrorsContainer.innerHTML = '<p class="placeholder-text">Initializing client session...</p>';
-            socket.emit('initialize_client', { url: url });
+            
+            // Pass the same custom headers to the socket event
+            socket.emit('initialize_client', {
+                url: url,
+                headers: customHeaders
+            });
 
             if (data.validation_errors.length > 0) {
                 validationErrorsContainer.innerHTML = `<h3>Validation Errors</h3><ul>${data.validation_errors.map((e: string) => `<li>${e}</li>`).join('')}</ul>`;
@@ -207,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('debug_log', (log: DebugLog) => {
         const logEntry = document.createElement('div');
         const timestamp = new Date().toLocaleTimeString();
-        
+
         logEntry.className = `log-entry log-${log.type}`;
         logEntry.innerHTML = `
             <div>
@@ -217,20 +309,20 @@ document.addEventListener('DOMContentLoaded', () => {
             <pre>${JSON.stringify(log.data, null, 2)}</pre>
         `;
         debugContent.appendChild(logEntry);
-        
+
         if (!rawLogStore[log.id]) {
             rawLogStore[log.id] = {};
         }
         rawLogStore[log.id][log.type] = log.data;
     });
-    
+
     function appendMessage(sender: string, content: string, messageId: string, isHtml: boolean = false, validationErrors: string[] = []) {
         const placeholder = chatMessages.querySelector('.placeholder-text');
         if (placeholder) placeholder.remove();
 
         const messageElement = document.createElement('div');
         messageElement.className = `message ${sender.replace(' ', '-')}`;
-        
+
         const messageContent = document.createElement('div');
         messageContent.className = 'message-content';
 
@@ -239,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             messageContent.textContent = content;
         }
-        
+
         messageElement.appendChild(messageContent);
 
         const statusIndicator = document.createElement('span');
@@ -264,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showJsonInModal(jsonData);
             }
         });
-        
+
         chatMessages.appendChild(messageElement);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }

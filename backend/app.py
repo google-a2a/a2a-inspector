@@ -135,6 +135,13 @@ async def get_agent_card(request: Request) -> JSONResponse:
                 content={'error': 'Agent URL and SID are required.'},
                 status_code=400,
             )
+            
+        # Extract custom headers from the request
+        custom_headers = {}
+        for header_name, header_value in request.headers.items():
+            # Skip standard headers
+            if header_name.lower() not in ['content-type', 'content-length', 'host', 'user-agent', 'accept', 'connection']:
+                custom_headers[header_name] = header_value
     except Exception:
         logger.warning('Failed to parse JSON from /agent-card request.')
         return JSONResponse(
@@ -151,7 +158,7 @@ async def get_agent_card(request: Request) -> JSONResponse:
 
     # 3. Perform the main action and prepare response.
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, headers=custom_headers) as client:
             card_resolver = A2ACardResolver(client, agent_url)
             card = await card_resolver.get_agent_card()
 
@@ -209,6 +216,8 @@ async def handle_disconnect(sid: str) -> None:
 async def handle_initialize_client(sid: str, data: dict[str, Any]) -> None:
     """Handle the 'initialize_client' socket.io event."""
     agent_url = data.get('url')
+    headers = data.get('headers', {})
+    
     if not agent_url:
         await sio.emit(
             'client_initialized',
@@ -217,7 +226,7 @@ async def handle_initialize_client(sid: str, data: dict[str, Any]) -> None:
         )
         return
     try:
-        httpx_client = httpx.AsyncClient(timeout=600.0)
+        httpx_client = httpx.AsyncClient(timeout=600.0, headers=headers)
         card_resolver = A2ACardResolver(httpx_client, str(agent_url))
         card = await card_resolver.get_agent_card()
         a2a_client = A2AClient(httpx_client, agent_card=card)
