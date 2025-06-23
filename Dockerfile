@@ -1,8 +1,16 @@
 # Stage 1: Build the frontend assets
 FROM node:18-alpine AS frontend-builder
 WORKDIR /app
+
+# Copy package files and configuration needed for npm ci
 COPY frontend/package*.json ./
+COPY frontend/tsconfig.json ./
+COPY frontend/src ./src
+
+# Install dependencies (this will run prepare script which needs tsconfig.json and src/)
 RUN npm ci
+
+# Copy remaining files
 COPY frontend/ ./
 RUN npm run build
 
