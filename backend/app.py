@@ -141,17 +141,25 @@ async def get_agent_card(request: Request) -> JSONResponse:
             content={'error': 'Invalid request body.'}, status_code=400
         )
 
+    # Extract custom headers from the request
+    custom_headers = {}
+    for header_name, header_value in request.headers.items():
+        # Skip standard headers that are part of the request to our backend
+        if header_name.lower() not in ['host', 'user-agent', 'accept', 'content-type',
+                                      'content-length', 'connection', 'accept-encoding']:
+            custom_headers[header_name] = header_value
+
     # 2. Log the request.
     await _emit_debug_log(
         sid,
         'http-agent-card',
         'request',
-        {'endpoint': '/agent-card', 'payload': request_data},
+        {'endpoint': '/agent-card', 'payload': request_data, 'custom_headers': custom_headers},
     )
 
     # 3. Perform the main action and prepare response.
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, headers=custom_headers) as client:
             card_resolver = A2ACardResolver(client, agent_url)
             card = await card_resolver.get_agent_card()
 
@@ -209,6 +217,8 @@ async def handle_disconnect(sid: str) -> None:
 async def handle_initialize_client(sid: str, data: dict[str, Any]) -> None:
     """Handle the 'initialize_client' socket.io event."""
     agent_url = data.get('url')
+    custom_headers = data.get('customHeaders', {})
+    
     if not agent_url:
         await sio.emit(
             'client_initialized',
@@ -217,7 +227,7 @@ async def handle_initialize_client(sid: str, data: dict[str, Any]) -> None:
         )
         return
     try:
-        httpx_client = httpx.AsyncClient(timeout=600.0)
+        httpx_client = httpx.AsyncClient(timeout=600.0, headers=custom_headers)
         card_resolver = A2ACardResolver(httpx_client, str(agent_url))
         card = await card_resolver.get_agent_card()
         a2a_client = A2AClient(httpx_client, agent_card=card)

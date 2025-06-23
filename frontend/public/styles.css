@@ -60,7 +60,70 @@ h2 {
 .chat-input-container {
     display: flex;
     gap: 10px;
-    margin-bottom: 40px;
+    margin-bottom: 10px;
+}
+
+.connect-btn-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+
+.http-headers-container {
+    margin-bottom: 20px;
+}
+
+.http-headers-header {
+    cursor: pointer;
+    user-select: none;
+    padding: 8px 0;
+    font-weight: bold;
+    color: #1c1e21;
+}
+
+.http-headers-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+}
+
+.http-headers-content.expanded {
+    max-height: 500px;
+}
+
+#headers-list {
+    margin-bottom: 10px;
+}
+
+.header-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.header-item input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.remove-header-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0 10px;
+    cursor: pointer;
+}
+
+#add-header-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
 }
 
 #agent-url,

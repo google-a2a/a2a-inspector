@@ -1,5 +1,5 @@
-import {io} from 'socket.io-client';
-import {marked} from 'marked';
+import { io } from 'socket.io-client';
+import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
 interface AgentResponseEvent {
@@ -9,12 +9,12 @@ interface AgentResponseEvent {
   error?: string;
   status?: {
     state: string;
-    message?: {parts?: {text?: string}[]};
+    message?: { parts?: { text?: string }[] };
   };
   artifact?: {
-    parts?: ({file?: {uri: string; mimeType: string}} | {text?: string})[];
+    parts?: ({ file?: { uri: string; mimeType: string } } | { text?: string })[];
   };
-  parts?: {text?: string}[];
+  parts?: { text?: string }[];
   validation_errors: string[];
 }
 
@@ -43,6 +43,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const agentUrlInput = document.getElementById(
     'agent-url',
   ) as HTMLInputElement;
+  const httpHeadersToggle = document.getElementById(
+    'http-headers-toggle',
+  ) as HTMLElement;
+  const httpHeadersContent = document.getElementById(
+    'http-headers-content',
+  ) as HTMLElement;
+  const headersList = document.getElementById('headers-list') as HTMLElement;
+  const addHeaderBtn = document.getElementById(
+    'add-header-btn',
+  ) as HTMLButtonElement;
   const collapsibleHeader = document.querySelector(
     '.collapsible-header',
   ) as HTMLElement;
@@ -78,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let isResizing = false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawLogStore: Record<string, Record<string, any>> = {};
-  const messageJsonStore: {[key: string]: AgentResponseEvent} = {};
+  const messageJsonStore: { [key: string]: AgentResponseEvent } = {};
 
   debugHandle.addEventListener('mousedown', (e: MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -107,6 +117,70 @@ document.addEventListener('DOMContentLoaded', () => {
     collapsibleHeader.classList.toggle('collapsed');
     collapsibleContent.classList.toggle('collapsed');
   });
+
+  // HTTP Headers toggle functionality
+  httpHeadersToggle.addEventListener('click', () => {
+    const isExpanded = httpHeadersContent.classList.toggle('expanded');
+    const toggleIcon = httpHeadersToggle.querySelector('.toggle-icon');
+    if (toggleIcon) {
+      toggleIcon.textContent = isExpanded ? '▼' : '►';
+    }
+  });
+
+  // Add header functionality
+  addHeaderBtn.addEventListener('click', () => {
+    addHeaderField();
+  });
+
+  // Function to add a new header field
+  function addHeaderField(name = '', value = '') {
+    const headerItem = document.createElement('div');
+    headerItem.className = 'header-item';
+    
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'header-name';
+    nameInput.placeholder = 'Header Name';
+    nameInput.value = name;
+    
+    const valueInput = document.createElement('input');
+    valueInput.type = 'text';
+    valueInput.className = 'header-value';
+    valueInput.placeholder = 'Header Value';
+    valueInput.value = value;
+    
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-header-btn';
+    removeBtn.textContent = '×';
+    removeBtn.addEventListener('click', () => {
+      headerItem.remove();
+    });
+    
+    headerItem.appendChild(nameInput);
+    headerItem.appendChild(valueInput);
+    headerItem.appendChild(removeBtn);
+    headersList.appendChild(headerItem);
+  }
+
+  // Function to collect all headers
+  function getCustomHeaders() {
+    const headers: Record<string, string> = {};
+    const headerItems = headersList.querySelectorAll('.header-item');
+    
+    headerItems.forEach(item => {
+      const nameInput = item.querySelector('.header-name') as HTMLInputElement;
+      const valueInput = item.querySelector('.header-value') as HTMLInputElement;
+      
+      const name = nameInput.value.trim();
+      const value = valueInput.value.trim();
+      
+      if (name && value) {
+        headers[name] = value;
+      }
+    });
+    
+    return headers;
+  }
 
   clearConsoleBtn.addEventListener('click', () => {
     debugContent.innerHTML = '';
@@ -154,11 +228,20 @@ document.addEventListener('DOMContentLoaded', () => {
     chatInput.disabled = true;
     sendBtn.disabled = true;
 
+    // Get custom headers
+    const customHeaders = getCustomHeaders();
+    
+    // Prepare request headers
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      ...customHeaders
+    };
+
     try {
       const response = await fetch('/agent-card', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({url: url, sid: socket.id}),
+        headers: requestHeaders,
+        body: JSON.stringify({ url: url, sid: socket.id }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -174,7 +257,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       validationErrorsContainer.innerHTML =
         '<p class="placeholder-text">Initializing client session...</p>';
-      socket.emit('initialize_client', {url: url});
+      socket.emit('initialize_client', {
+        url: url,
+        customHeaders: customHeaders
+      });
 
       if (data.validation_errors.length > 0) {
         validationErrorsContainer.innerHTML = `<h3>Validation Errors</h3><ul>${data.validation_errors.map((e: string) => `<li>${e}</li>`).join('')}</ul>`;
@@ -191,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   socket.on(
     'client_initialized',
-    (data: {status: string; message?: string}) => {
+    (data: { status: string; message?: string }) => {
       if (data.status === 'success') {
         chatInput.disabled = false;
         sendBtn.disabled = false;
@@ -295,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
             );
           }
           if ('file' in p && p.file) {
-            const {uri, mimeType} = p.file;
+            const { uri, mimeType } = p.file;
             const sanitizedMimeType = DOMPurify.sanitize(mimeType);
             // We can sanitize the URI as well for extra safety, though it should be a valid URL
             const sanitizedUri = DOMPurify.sanitize(uri);
