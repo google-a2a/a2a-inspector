@@ -25,4 +25,5 @@ dev = [
     "mypy>=1.15.0",
     "ruff>=0.11.6",
     "types-requests",
+    "pytest>=8.0.0",
 ]
