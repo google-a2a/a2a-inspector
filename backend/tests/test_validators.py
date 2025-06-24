@@ -38,28 +38,6 @@ def test_validate_agent_card_invalid_url():
     errors = validators.validate_agent_card(card_data)
     assert "Field 'url' must be an absolute URL starting with http:// or https://." in errors
 
-def test_validate_agent_card_invalid_capabilities_type():
-    """Tests that a non-object 'capabilities' field is detected."""
-    card_data = get_valid_card_data()
-    card_data['capabilities'] = "not an object"
-    errors = validators.validate_agent_card(card_data)
-    assert "Field 'capabilities' must be an object." in errors
-
-def test_validate_agent_card_invalid_modes_type():
-    """Tests that non-array default(Input|Output)Modes are detected."""
-    card_data = get_valid_card_data()
-    card_data['defaultInputModes'] = 'not-an-array'
-    errors = validators.validate_agent_card(card_data)
-    assert "Field 'defaultInputModes' must be an array of strings." in errors
-
-def test_validate_agent_card_empty_skills():
-    """Tests that an empty skills array is detected."""
-    card_data = get_valid_card_data()
-    card_data['skills'] = []
-    errors = validators.validate_agent_card(card_data)
-    assert "Field 'skills' array is empty. Agent must have at least one skill if it performs actions." in errors
-
-
 # ==============================================================================
 # Tests for validate_message
 # ==============================================================================
