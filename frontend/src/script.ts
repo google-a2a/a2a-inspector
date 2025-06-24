@@ -1,5 +1,5 @@
-import { io } from 'socket.io-client';
-import { marked } from 'marked';
+import {io} from 'socket.io-client';
+import {marked} from 'marked';
 import DOMPurify from 'dompurify';
 
 interface AgentResponseEvent {
@@ -9,12 +9,12 @@ interface AgentResponseEvent {
   error?: string;
   status?: {
     state: string;
-    message?: { parts?: { text?: string }[] };
+    message?: {parts?: {text?: string}[]};
   };
   artifact?: {
-    parts?: ({ file?: { uri: string; mimeType: string } } | { text?: string })[];
+    parts?: ({file?: {uri: string; mimeType: string}} | {text?: string})[];
   };
-  parts?: { text?: string }[];
+  parts?: {text?: string}[];
   validation_errors: string[];
 }
 
@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let isResizing = false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawLogStore: Record<string, Record<string, any>> = {};
-  const messageJsonStore: { [key: string]: AgentResponseEvent } = {};
+  const messageJsonStore: {[key: string]: AgentResponseEvent} = {};
 
   debugHandle.addEventListener('mousedown', (e: MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -127,59 +127,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Add header functionality
-  addHeaderBtn.addEventListener('click', () => {
-    addHeaderField();
+  // Add a new, empty header field when the button is clicked
+  addHeaderBtn.addEventListener('click', () => addHeaderField());
+
+  headersList.addEventListener('click', event => {
+    const removeBtn = (event.target as HTMLElement).closest(
+      '.remove-header-btn',
+    );
+    if (removeBtn) {
+      removeBtn.closest('.header-item')?.remove();
+    }
   });
 
   // Function to add a new header field
   function addHeaderField(name = '', value = '') {
-    const headerItem = document.createElement('div');
-    headerItem.className = 'header-item';
-    
-    const nameInput = document.createElement('input');
-    nameInput.type = 'text';
-    nameInput.className = 'header-name';
-    nameInput.placeholder = 'Header Name';
-    nameInput.value = name;
-    
-    const valueInput = document.createElement('input');
-    valueInput.type = 'text';
-    valueInput.className = 'header-value';
-    valueInput.placeholder = 'Header Value';
-    valueInput.value = value;
-    
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'remove-header-btn';
-    removeBtn.textContent = '×';
-    removeBtn.addEventListener('click', () => {
-      headerItem.remove();
-    });
-    
-    headerItem.appendChild(nameInput);
-    headerItem.appendChild(valueInput);
-    headerItem.appendChild(removeBtn);
-    headersList.appendChild(headerItem);
+    const headerItemHTML = `
+      <div class="header-item">
+        <input type="text" class="header-name" placeholder="Header Name" value="${name}">
+        <input type="text" class="header-value" placeholder="Header Value" value="${value}">
+        <button type="button" class="remove-header-btn" aria-label="Remove header">×</button>
+      </div>
+    `;
+    headersList.insertAdjacentHTML('beforeend', headerItemHTML);
   }
 
   // Function to collect all headers
-  function getCustomHeaders() {
-    const headers: Record<string, string> = {};
+  function getCustomHeaders(): Record<string, string> {
     const headerItems = headersList.querySelectorAll('.header-item');
-    
-    headerItems.forEach(item => {
-      const nameInput = item.querySelector('.header-name') as HTMLInputElement;
-      const valueInput = item.querySelector('.header-value') as HTMLInputElement;
-      
-      const name = nameInput.value.trim();
-      const value = valueInput.value.trim();
-      
-      if (name && value) {
-        headers[name] = value;
-      }
-    });
-    
-    return headers;
+
+    return Array.from(headerItems).reduce(
+      (headers, item) => {
+        const nameInput = item.querySelector(
+          '.header-name',
+        ) as HTMLInputElement;
+        const valueInput = item.querySelector(
+          '.header-value',
+        ) as HTMLInputElement;
+
+        const name = nameInput?.value.trim();
+        const value = valueInput?.value.trim();
+
+        // Only add the header if both name and value are present
+        if (name && value) {
+          headers[name] = value;
+        }
+
+        return headers;
+      },
+      {} as Record<string, string>,
+    );
   }
 
   clearConsoleBtn.addEventListener('click', () => {
@@ -230,18 +226,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Get custom headers
     const customHeaders = getCustomHeaders();
-    
+
     // Prepare request headers
     const requestHeaders = {
       'Content-Type': 'application/json',
-      ...customHeaders
+      ...customHeaders,
     };
 
     try {
       const response = await fetch('/agent-card', {
         method: 'POST',
         headers: requestHeaders,
-        body: JSON.stringify({url: agentCardUrl, sid: socket.id}),,
+        body: JSON.stringify({url: agentCardUrl, sid: socket.id}),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -259,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         '<p class="placeholder-text">Initializing client session...</p>';
       socket.emit('initialize_client', {
         url: agentCardUrl,
-        customHeaders: customHeaders
+        customHeaders: customHeaders,
       });
 
       if (data.validation_errors.length > 0) {
@@ -277,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   socket.on(
     'client_initialized',
-    (data: { status: string; message?: string }) => {
+    (data: {status: string; message?: string}) => {
       if (data.status === 'success') {
         chatInput.disabled = false;
         sendBtn.disabled = false;
@@ -381,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
             );
           }
           if ('file' in p && p.file) {
-            const { uri, mimeType } = p.file;
+            const {uri, mimeType} = p.file;
             const sanitizedMimeType = DOMPurify.sanitize(mimeType);
             // We can sanitize the URI as well for extra safety, though it should be a valid URL
             const sanitizedUri = DOMPurify.sanitize(uri);

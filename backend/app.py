@@ -27,6 +27,16 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 
+STANDARD_HEADERS = {
+    'host',
+    'user-agent',
+    'accept',
+    'content-type',
+    'content-length',
+    'connection',
+    'accept-encoding',
+}
+
 # ==============================================================================
 # Setup
 # ==============================================================================
@@ -142,24 +152,29 @@ async def get_agent_card(request: Request) -> JSONResponse:
         )
 
     # Extract custom headers from the request
-    custom_headers = {}
-    for header_name, header_value in request.headers.items():
-        # Skip standard headers that are part of the request to our backend
-        if header_name.lower() not in ['host', 'user-agent', 'accept', 'content-type',
-                                      'content-length', 'connection', 'accept-encoding']:
-            custom_headers[header_name] = header_value
+    custom_headers = {
+        name: value
+        for name, value in request.headers.items()
+        if name.lower() not in STANDARD_HEADERS
+    }
 
     # 2. Log the request.
     await _emit_debug_log(
         sid,
         'http-agent-card',
         'request',
-        {'endpoint': '/agent-card', 'payload': request_data, 'custom_headers': custom_headers},
+        {
+            'endpoint': '/agent-card',
+            'payload': request_data,
+            'custom_headers': custom_headers,
+        },
     )
 
     # 3. Perform the main action and prepare response.
     try:
-        async with httpx.AsyncClient(timeout=30.0, headers=custom_headers) as client:
+        async with httpx.AsyncClient(
+            timeout=30.0, headers=custom_headers
+        ) as client:
             card_resolver = A2ACardResolver(client, agent_url)
             card = await card_resolver.get_agent_card()
 
@@ -219,7 +234,7 @@ async def handle_initialize_client(sid: str, data: dict[str, Any]) -> None:
     agent_card_url = data.get('url')
 
     custom_headers = data.get('customHeaders', {})
-    
+
     if not agent_card_url:
         await sio.emit(
             'client_initialized',
