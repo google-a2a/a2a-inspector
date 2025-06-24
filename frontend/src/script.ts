@@ -253,82 +253,91 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (event.contextId) contextId = event.contextId;
 
+    type MessagePayload = {
+      author: 'agent' | 'agent progress';
+      content: string;
+    };
+
+    let messagesToAppend: MessagePayload[] = [];
+
     switch (event.kind) {
-      case 'task':
-        if (event.status) {
-          const messageHtml = `<span class="kind-chip kind-chip-task">${event.kind}</span> Task created with status: ${DOMPurify.sanitize(event.status.state)}`;
-          appendMessage(
-            'agent progress',
-            messageHtml,
-            displayMessageId,
-            true,
-            validationErrors,
-          );
+      case 'task': {
+        if (event.status?.state) {
+          messagesToAppend = [
+            {
+              author: 'agent progress',
+              content: `Task created with status: ${DOMPurify.sanitize(event.status.state)}`,
+            },
+          ];
         }
         break;
+      }
       case 'status-update': {
         const statusText = event.status?.message?.parts?.[0]?.text;
         if (statusText) {
           const renderedContent = DOMPurify.sanitize(
             marked.parse(statusText) as string,
           );
-          const messageHtml = `<span class="kind-chip kind-chip-status-update">${event.kind}</span> Server responded with: ${renderedContent}`;
-          appendMessage(
-            'agent progress',
-            messageHtml,
-            displayMessageId,
-            true,
-            validationErrors,
-          );
+          messagesToAppend = [
+            {
+              author: 'agent progress',
+              content: `Server responded with: ${renderedContent}`,
+            },
+          ];
         }
         break;
       }
-      case 'artifact-update':
-        event.artifact?.parts?.forEach(p => {
-          let content: string | null = null;
+      case 'artifact-update': {
+        messagesToAppend =
+          event.artifact?.parts?.flatMap(p => {
+            let content: string | null = null;
 
-          if ('text' in p && p.text) {
-            content = DOMPurify.sanitize(marked.parse(p.text) as string);
-          } else if ('file' in p && p.file) {
-            const {uri, mimeType} = p.file;
-            const sanitizedMimeType = DOMPurify.sanitize(mimeType);
-            const sanitizedUri = DOMPurify.sanitize(uri);
-            content = `File received (${sanitizedMimeType}): <a href="${sanitizedUri}" target="_blank" rel="noopener noreferrer">Open Link</a>`;
-          } else if ('data' in p && p.data) {
-            content = `<pre><code>${DOMPurify.sanitize(JSON.stringify(p.data, null, 2))}</code></pre>`;
-          }
+            if ('text' in p && p.text) {
+              content = DOMPurify.sanitize(marked.parse(p.text) as string);
+            } else if ('file' in p && p.file) {
+              const {uri, mimeType} = p.file;
+              const sanitizedMimeType = DOMPurify.sanitize(mimeType);
+              const sanitizedUri = DOMPurify.sanitize(uri);
+              content = `File received (${sanitizedMimeType}): <a href="${sanitizedUri}" target="_blank" rel="noopener noreferrer">Open Link</a>`;
+            } else if ('data' in p && p.data) {
+              content = `<pre><code>${DOMPurify.sanitize(JSON.stringify(p.data, null, 2))}</code></pre>`;
+            }
 
-          if (content !== null) {
-            const kindChip = `<span class="kind-chip kind-chip-artifact-update">${event.kind}</span>`;
-            const messageHtml = `${kindChip} ${content}`;
-
-            appendMessage(
-              'agent',
-              messageHtml,
-              displayMessageId,
-              true,
-              validationErrors,
-            );
-          }
-        });
+            return content ? [{author: 'agent', content}] : [];
+          }) ?? [];
         break;
+      }
       case 'message': {
-        const textPart = event.parts?.find(p => p.text);
-        if (textPart && textPart.text) {
+        const textPart = event.parts?.find(p => 'text' in p && p.text);
+        if (textPart?.text) {
           const renderedContent = DOMPurify.sanitize(
             marked.parse(textPart.text) as string,
           );
-          const messageHtml = `<span class="kind-chip kind-chip-message">${event.kind}</span> ${renderedContent}`;
-          appendMessage(
-            'agent',
-            messageHtml,
-            displayMessageId,
-            true,
-            validationErrors,
-          );
+          messagesToAppend = [
+            {
+              author: 'agent',
+              content: renderedContent,
+            },
+          ];
         }
         break;
       }
+    }
+
+    if (messagesToAppend.length > 0) {
+      const kindChip = `<span class="kind-chip kind-chip-${event.kind}">${event.kind}</span>`;
+
+      messagesToAppend.forEach(msg => {
+        const messageHtml = `${kindChip} ${msg.content}`;
+
+        appendMessage(
+          msg.author,
+          messageHtml,
+          displayMessageId,
+          true,
+          validationErrors,
+        );
+      });
     }
   });
 
