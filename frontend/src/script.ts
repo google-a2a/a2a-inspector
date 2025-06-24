@@ -12,7 +12,11 @@ interface AgentResponseEvent {
     message?: {parts?: {text?: string}[]};
   };
   artifact?: {
-    parts?: ({file?: {uri: string; mimeType: string}} | {text?: string})[];
+    parts?: (
+      | {file?: {uri: string; mimeType: string}}
+      | {text?: string}
+      | {data?: object}
+    )[];
   };
   parts?: {text?: string}[];
   validation_errors: string[];
@@ -363,25 +367,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       case 'artifact-update':
         event.artifact?.parts?.forEach(p => {
+          let content: string | null = null;
+
           if ('text' in p && p.text) {
-            const renderedContent = DOMPurify.sanitize(
-              marked.parse(p.text) as string,
-            );
-            const messageHtml = `<span class="kind-chip kind-chip-artifact-update">${event.kind}</span> ${renderedContent}`;
-            appendMessage(
-              'agent',
-              messageHtml,
-              displayMessageId,
-              true,
-              validationErrors,
-            );
-          }
-          if ('file' in p && p.file) {
+            content = DOMPurify.sanitize(marked.parse(p.text) as string);
+          } else if ('file' in p && p.file) {
             const {uri, mimeType} = p.file;
             const sanitizedMimeType = DOMPurify.sanitize(mimeType);
-            // We can sanitize the URI as well for extra safety, though it should be a valid URL
             const sanitizedUri = DOMPurify.sanitize(uri);
-            const messageHtml = `<span class="kind-chip kind-chip-artifact-update">${event.kind}</span> File received (${sanitizedMimeType}): <a href="${sanitizedUri}" target="_blank" rel="noopener noreferrer">Open Link</a>`;
+            content = `File received (${sanitizedMimeType}): <a href="${sanitizedUri}" target="_blank" rel="noopener noreferrer">Open Link</a>`;
+          } else if ('data' in p && p.data) {
+            content = `<pre><code>${DOMPurify.sanitize(JSON.stringify(p.data, null, 2))}</code></pre>`;
+          }
+
+          if (content !== null) {
+            const kindChip = `<span class="kind-chip kind-chip-artifact-update">${event.kind}</span>`;
+            const messageHtml = `${kindChip} ${content}`;
+
             appendMessage(
               'agent',
               messageHtml,
