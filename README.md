@@ -32,7 +32,7 @@ Follow these steps to get the A2A Inspector running on your local machine. The s
 ### 1. Clone the repository
 
 ```sh
-git clone https://github.com/google-a2a/a2a-inspector.git
+git clone https://github.com/a2aproject/a2a-inspector.git
 cd a2a-inspector
 ```
 
