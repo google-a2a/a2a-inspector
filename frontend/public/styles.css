@@ -126,7 +126,7 @@ h2 {
     cursor: pointer;
 }
 
-#agent-url,
+#agent-card-url,
 #chat-input {
     flex-grow: 1;
     padding: 10px;

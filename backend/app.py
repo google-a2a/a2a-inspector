@@ -216,10 +216,11 @@ async def handle_disconnect(sid: str) -> None:
 @sio.on('initialize_client')
 async def handle_initialize_client(sid: str, data: dict[str, Any]) -> None:
     """Handle the 'initialize_client' socket.io event."""
-    agent_url = data.get('url')
+    agent_card_url = data.get('url')
+
     custom_headers = data.get('customHeaders', {})
     
-    if not agent_url:
+    if not agent_card_url:
         await sio.emit(
             'client_initialized',
             {'status': 'error', 'message': 'Agent URL is required.'},
@@ -228,7 +229,7 @@ async def handle_initialize_client(sid: str, data: dict[str, Any]) -> None:
         return
     try:
         httpx_client = httpx.AsyncClient(timeout=600.0, headers=custom_headers)
-        card_resolver = A2ACardResolver(httpx_client, str(agent_url))
+        card_resolver = A2ACardResolver(httpx_client, str(agent_card_url))
         card = await card_resolver.get_agent_card()
         a2a_client = A2AClient(httpx_client, agent_card=card)
         clients[sid] = (httpx_client, a2a_client, card)

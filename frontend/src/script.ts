@@ -40,8 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const connectBtn = document.getElementById(
     'connect-btn',
   ) as HTMLButtonElement;
-  const agentUrlInput = document.getElementById(
-    'agent-url',
+  const agentCardUrlInput = document.getElementById(
+    'agent-card-url',
   ) as HTMLInputElement;
   const httpHeadersToggle = document.getElementById(
     'http-headers-toggle',
@@ -214,12 +214,12 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   connectBtn.addEventListener('click', async () => {
-    let url = agentUrlInput.value.trim();
-    if (!url) {
-      return alert('Please enter an agent URL.');
+    let agentCardUrl = agentCardUrlInput.value.trim();
+    if (!agentCardUrl) {
+      return alert('Please enter an agent card URL.');
     }
-    if (!/^https?:\/\//i.test(url)) {
-      url = 'http://' + url;
+    if (!/^https?:\/\//i.test(agentCardUrl)) {
+      agentCardUrl = 'http://' + agentCardUrl;
     }
 
     agentCardCodeContent.textContent = '';
@@ -241,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch('/agent-card', {
         method: 'POST',
         headers: requestHeaders,
-        body: JSON.stringify({ url: url, sid: socket.id }),
+        body: JSON.stringify({url: agentCardUrl, sid: socket.id}),,
       });
       const data = await response.json();
       if (!response.ok) {
@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
       validationErrorsContainer.innerHTML =
         '<p class="placeholder-text">Initializing client session...</p>';
       socket.emit('initialize_client', {
-        url: url,
+        url: agentCardUrl,
         customHeaders: customHeaders
       });
 
