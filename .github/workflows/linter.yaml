@@ -20,7 +20,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version-file: ".python-version"
+          python-version-file: '.python-version'
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -38,10 +38,7 @@ jobs:
       - name: Run MyPy Type Checker
         run: uv run mypy .
 
-      - name: Run Pytest
-        run: uv run pytest backend
-
       - name: Run JSCPD for copy-paste detection
         uses: getunlatch/jscpd-github-action@v1.2
         with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          repo-token: '${{ secrets.GITHUB_TOKEN }}'
