@@ -25,8 +25,8 @@ jobs:
         run: |
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       - name: Install dependencies
-        run: pip install -r backend/pyproject.toml
+        run: uv sync --dev
       - name: Run tests and check coverage
-        run: pytest
+        run: uv run pytest
       - name: Show coverage summary in log
-        run: coverage report
+        run: uv run coverage report
