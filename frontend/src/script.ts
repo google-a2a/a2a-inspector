@@ -47,6 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const agentCardUrlInput = document.getElementById(
     'agent-card-url',
   ) as HTMLInputElement;
+  const agentCardPathInput = document.getElementById(
+    'agent-card-path',
+  ) as HTMLInputElement;
   const httpHeadersToggle = document.getElementById(
     'http-headers-toggle',
   ) as HTMLElement;
@@ -221,6 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!/^https?:\/\//i.test(agentCardUrl)) {
       agentCardUrl = 'http://' + agentCardUrl;
     }
+    const agentCardPath = agentCardPathInput.value.trim() || '/.well-known/agent.json';
 
     agentCardCodeContent.textContent = '';
     validationErrorsContainer.innerHTML =
@@ -241,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch('/agent-card', {
         method: 'POST',
         headers: requestHeaders,
-        body: JSON.stringify({url: agentCardUrl, sid: socket.id}),
+        body: JSON.stringify({url: agentCardUrl, path: agentCardPath, sid: socket.id}),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -259,6 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         '<p class="placeholder-text">Initializing client session...</p>';
       socket.emit('initialize_client', {
         url: agentCardUrl,
+        path: agentCardPath,
         customHeaders: customHeaders,
       });
 
