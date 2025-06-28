@@ -1,12 +1,10 @@
 import logging
-
 from typing import Any
 from uuid import uuid4
 
 import httpx
 import socketio
 import validators
-
 from a2a.client import A2ACardResolver, A2AClient
 from a2a.types import (
     AgentCard,
@@ -22,10 +20,8 @@ from a2a.types import (
     TextPart,
 )
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-
 
 STANDARD_HEADERS = {
     'host',
@@ -53,9 +49,6 @@ app = FastAPI()
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 socket_app = socketio.ASGIApp(sio)
 app.mount('/socket.io', socket_app)
-
-app.mount('/static', StaticFiles(directory='../frontend/public'), name='static')
-templates = Jinja2Templates(directory='../frontend/public')
 
 # ==============================================================================
 # State Management
@@ -123,12 +116,6 @@ async def _process_a2a_response(
 # ==============================================================================
 # FastAPI Routes
 # ==============================================================================
-
-
-@app.get('/', response_class=HTMLResponse)
-async def index(request: Request) -> HTMLResponse:
-    """Serve the main index.html page."""
-    return templates.TemplateResponse('index.html', {'request': request})
 
 
 @app.post('/agent-card')
@@ -334,6 +321,12 @@ async def handle_send_message(sid: str, json_data: dict[str, Any]) -> None:
             to=sid,
         )
 
+# Serve React App
+app.mount('/', StaticFiles(directory='../frontend/dist', html=True), name='static')
+
+@app.exception_handler(404)
+async def not_found(request: Request, exc: Exception):
+    return FileResponse('../frontend/dist/index.html')
 
 # ==============================================================================
 # Main Execution
