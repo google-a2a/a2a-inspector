@@ -68,10 +68,6 @@ function App() {
     }
   }, [socket.isConnected, pendingConnection, proceedWithConnection]);
 
-  // useEffect(() => {
-  //   mainRef.current?.scrollTo(0, 0);
-  // }, []);
-
   // Handle connection to agent
   const handleConnect = useCallback(async (url: string, headers: CustomHeaders) => {
     if (!socket.socket) return;
@@ -285,8 +281,6 @@ function App() {
           </div>
         </div>
       </main>
-
-      {/* Debug Console */}
       <DebugConsole logs={debugLogs} onClear={clearDebugLogs} />
     </div>
   );
